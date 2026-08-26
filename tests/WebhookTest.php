@@ -56,6 +56,22 @@ final class WebhookTest extends TestCase
         self::assertSame($v['delivery_id'], $event->deliveryId);
     }
 
+    public function testEventTypeFallsBackToBodyWhenHeaderMissing(): void
+    {
+        $v = self::vectors()[0];
+        $headers = self::headersFor($v);
+        unset($headers['X-Webhook-Event']);
+        $event = Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
+        self::assertSame('bank.credit', $event->type);
+    }
+
+    public function testTimestampExactlyAtToleranceAccepted(): void
+    {
+        $v = self::vectors()[0];
+        $event = Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp'] + 300);
+        self::assertSame($v['delivery_id'], $event->deliveryId);
+    }
+
     public function testTamperedBodyRejected(): void
     {
         $v = self::vectors()[0];
