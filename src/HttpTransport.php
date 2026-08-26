@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace BankApi;
@@ -74,7 +75,10 @@ final class HttpTransport
         }
     }
 
-    /** @param array<string, int|string> $query @param array<string, mixed>|null $body */
+    /**
+     * @param array<string, int|string> $query
+     * @param array<string, mixed>|null $body
+     */
     private function buildRequest(string $method, string $path, array $query, ?array $body): \Psr\Http\Message\RequestInterface
     {
         $uri = rtrim($this->baseUrl, '/') . $path;
