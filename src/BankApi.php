@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BankApi;
 
 use BankApi\Service\BankingService;
+use BankApi\Service\WebhookEndpointService;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -13,6 +14,7 @@ final class BankApi
 {
     private readonly HttpTransport $transport;
     private ?BankingService $banking = null;
+    private ?WebhookEndpointService $webhookEndpoints = null;
 
     public function __construct(
         string $apiKey,
@@ -29,5 +31,8 @@ final class BankApi
         return $this->banking ??= new BankingService($this->transport);
     }
 
-    // webhookEndpoints() added in Task 7
+    public function webhookEndpoints(): WebhookEndpointService
+    {
+        return $this->webhookEndpoints ??= new WebhookEndpointService($this->transport);
+    }
 }
