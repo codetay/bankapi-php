@@ -3,6 +3,19 @@
     "description": "BankAPI.VN PHP SDK — API client and webhook signature verification",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "bankapi",
+        "banking",
+        "sdk",
+        "api-client",
+        "webhook",
+        "vietnam"
+    ],
+    "authors": [
+        {
+            "name": "BANKAPI.VN"
+        }
+    ],
     "require": {
         "php": ">=8.1",
         "ext-json": "*",
@@ -20,10 +33,14 @@
         "nyholm/psr7": "^1.8"
     },
     "autoload": {
-        "psr-4": { "BankApi\\": "src/" }
+        "psr-4": {
+            "BankApi\\": "src/"
+        }
     },
     "autoload-dev": {
-        "psr-4": { "BankApi\\Tests\\": "tests/" }
+        "psr-4": {
+            "BankApi\\Tests\\": "tests/"
+        }
     },
     "minimum-stability": "stable"
 }

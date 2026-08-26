@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace BankApi;
 
 use BankApi\Exception\ApiException;
+use BankApi\Exception\ConnectionException;
+use BankApi\Exception\MalformedResponseException;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -59,12 +61,12 @@ final class HttpTransport
                     $this->backoff(++$attempt);
                     continue;
                 }
-                throw $e;
+                throw new ConnectionException($e->getMessage(), $e);
             }
 
             $status = $response->getStatusCode();
             if ($status >= 200 && $status < 300) {
-                return $this->decode($response);
+                return $this->decode($response, strict: true);
             }
             if (($status === 429 || $status >= 500) && $this->shouldRetry($method, $attempt)) {
                 $this->backoff(++$attempt);
@@ -89,7 +91,7 @@ final class HttpTransport
         $request = $this->requestFactory->createRequest($method, $uri)
             ->withHeader('X-API-Key', $this->apiKey)
             ->withHeader('Accept', 'application/json')
-            ->withHeader('User-Agent', 'bankapi-php/0.1.0');
+            ->withHeader('User-Agent', 'bankapi-php/' . BankApi::VERSION);
 
         if ($body !== null) {
             $request = $request
@@ -100,16 +102,28 @@ final class HttpTransport
         return $request;
     }
 
-    /** @return array<string, mixed> */
-    private function decode(ResponseInterface $response): array
+    /**
+     * Strict mode (2xx path) refuses a non-JSON or non-array body instead of
+     * silently returning empty data; the lenient mode (error path) keeps
+     * mapping by status even when the error body is not valid problem+json.
+     *
+     * @return array<string, mixed>
+     */
+    private function decode(ResponseInterface $response, bool $strict = false): array
     {
         $raw = (string) $response->getBody();
         if (trim($raw) === '') {
             return [];
         }
         $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+        if ($strict) {
+            throw new MalformedResponseException($response->getStatusCode(), 'response body is not a JSON object');
+        }
 
-        return is_array($decoded) ? $decoded : [];
+        return [];
     }
 
     private function shouldRetry(string $method, int $attempt): bool

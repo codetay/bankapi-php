@@ -115,20 +115,24 @@ retrieved again later.
 
 ## Errors
 
-Every non-2xx response raises a subclass of `BankApi\Exception\ApiException`,
-built from the API's `problem+json` body:
+Every failure raises a subclass of `BankApi\Exception\ApiException` — HTTP
+errors are built from the API's `problem+json` body, transport failures are
+wrapped too:
 
-| HTTP status | Exception                                    | Notes                          |
+| Condition   | Exception                                    | Notes                          |
 |-------------|-----------------------------------------------|---------------------------------|
 | 400, 422    | `BankApi\Exception\ValidationException`       | invalid request/parameters      |
 | 401         | `BankApi\Exception\AuthenticationException`   | missing/invalid API key         |
 | 403         | `BankApi\Exception\PermissionException`       | key lacks permission            |
 | 404         | `BankApi\Exception\NotFoundException`         | resource does not exist         |
 | 429         | `BankApi\Exception\RateLimitException`        | has `->retryAfter` (seconds, nullable) |
-| other       | `BankApi\Exception\ApiException`              | base class, catches everything above too |
+| other non-2xx | `BankApi\Exception\ApiException`            | base class, catches everything in this table |
+| no response (DNS/connect/TLS/timeout) | `BankApi\Exception\ConnectionException` | `->status` is 0; original PSR-18 error via `->getPrevious()` |
+| 2xx with a non-JSON body | `BankApi\Exception\MalformedResponseException` | e.g. a proxy or captive portal answered instead of the API |
 
 All of them expose `->status`, `->title`, `->detail`, and `->body` (the
-decoded problem response).
+decoded problem response). Catching `ApiException` catches every failure the
+SDK can raise during a request.
 
 ```php
 use BankApi\Exception\RateLimitException;

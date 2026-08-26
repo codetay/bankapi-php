@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BankApi\Tests;
 
+use BankApi\Exception\ConnectionException;
+use BankApi\Exception\MalformedResponseException;
 use BankApi\Exception\NotFoundException;
 use BankApi\Exception\RateLimitException;
 use BankApi\HttpTransport;
@@ -110,5 +112,80 @@ final class HttpTransportTest extends TestCase
         $this->mock->addResponse(new Response(204));
 
         self::assertSame([], $t->request('DELETE', '/webhooks/abc'));
+    }
+
+    private static function networkException(string $message): \Psr\Http\Client\ClientExceptionInterface
+    {
+        return new class ($message) extends \RuntimeException implements \Psr\Http\Client\ClientExceptionInterface {
+        };
+    }
+
+    public function testNetworkErrorOnPostWrappedWithoutRetry(): void
+    {
+        $t = $this->transport();
+        $cause = self::networkException('dns failure');
+        $this->mock->addException($cause);
+
+        try {
+            $t->request('POST', '/webhooks', [], ['url' => 'https://x.vn']);
+            self::fail('expected ConnectionException');
+        } catch (ConnectionException $e) {
+            self::assertSame(0, $e->status);
+            self::assertSame($cause, $e->getPrevious());
+            self::assertStringContainsString('dns failure', $e->detail);
+            self::assertCount(1, $this->mock->getRequests());
+        }
+    }
+
+    public function testNetworkErrorOnGetExhaustsRetriesThenWraps(): void
+    {
+        $t = $this->transport(2);
+        $this->mock->addException(self::networkException('timeout 1'));
+        $this->mock->addException(self::networkException('timeout 2'));
+        $this->mock->addException(self::networkException('timeout 3'));
+
+        try {
+            $t->request('GET', '/banking/summary');
+            self::fail('expected ConnectionException');
+        } catch (ConnectionException $e) {
+            self::assertCount(3, $this->mock->getRequests()); // 1 + 2 retries
+        }
+    }
+
+    public function testMalformedJsonOn2xxThrows(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse(new Response(200, ['Content-Type' => 'text/html'], '<html>captive portal</html>'));
+
+        try {
+            $t->request('GET', '/banking/summary');
+            self::fail('expected MalformedResponseException');
+        } catch (MalformedResponseException $e) {
+            self::assertSame(200, $e->status);
+        }
+    }
+
+    public function testNonArrayJsonOn2xxThrows(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse(new Response(200, ['Content-Type' => 'application/json'], '"ok"'));
+
+        $this->expectException(MalformedResponseException::class);
+        $t->request('GET', '/banking/summary');
+    }
+
+    public function testMalformedErrorBodyStillMapsByStatus(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse(new Response(500, ['Content-Type' => 'text/html'], '<html>oops</html>'));
+
+        try {
+            $t->request('POST', '/webhooks', [], ['url' => 'https://x.vn']);
+            self::fail('expected ApiException');
+        } catch (MalformedResponseException) {
+            self::fail('error path must stay lenient, not throw MalformedResponseException');
+        } catch (\BankApi\Exception\ApiException $e) {
+            self::assertSame(500, $e->status);
+        }
     }
 }

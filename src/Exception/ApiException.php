@@ -12,8 +12,9 @@ class ApiException extends \RuntimeException
         public readonly string $title,
         public readonly string $detail,
         public readonly array $body = [],
+        ?\Throwable $previous = null,
     ) {
-        parent::__construct(sprintf('[%d] %s: %s', $status, $title, $detail));
+        parent::__construct(sprintf('[%d] %s: %s', $status, $title, $detail), 0, $previous);
     }
 
     /**
