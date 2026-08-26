@@ -22,6 +22,10 @@ final class Webhook
      */
     public static function constructEvent(string $payload, array $headers, string $secret, int $tolerance = 300, ?int $now = null): Event
     {
+        if ($secret === '') {
+            throw new SignatureVerificationException('webhook secret must not be empty');
+        }
+
         $h = [];
         foreach ($headers as $name => $value) {
             $h[strtolower((string) $name)] = is_array($value) ? (string) ($value[0] ?? '') : (string) $value;
@@ -49,10 +53,7 @@ final class Webhook
         $decoded = json_decode($payload, true);
         $decoded = is_array($decoded) ? $decoded : [];
         $data = is_array($decoded['data'] ?? null) ? $decoded['data'] : [];
-        $type = $h['x-webhook-event'] ?? '';
-        if ($type === '' && is_string($decoded['event'] ?? null)) {
-            $type = $decoded['event'];
-        }
+        $type = is_string($decoded['event'] ?? null) && $decoded['event'] !== '' ? $decoded['event'] : ($h['x-webhook-event'] ?? '');
 
         return new Event($type, $deliveryId, $timestamp, $data);
     }

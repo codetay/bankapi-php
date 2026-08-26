@@ -66,6 +66,22 @@ final class WebhookTest extends TestCase
         self::assertSame('bank.credit', $event->type);
     }
 
+    public function testEventTypeFromSignedBodyWinsOverHeader(): void
+    {
+        $v = self::vectors()[0];
+        $headers = self::headersFor($v);
+        $headers['X-Webhook-Event'] = ['org.created'];
+        $event = Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
+        self::assertSame('bank.credit', $event->type);
+    }
+
+    public function testEmptySecretRejected(): void
+    {
+        $v = self::vectors()[0];
+        $this->expectException(SignatureVerificationException::class);
+        Webhook::constructEvent($v['body'], self::headersFor($v), '', 300, (int) $v['timestamp']);
+    }
+
     public function testTimestampExactlyAtToleranceAccepted(): void
     {
         $v = self::vectors()[0];
