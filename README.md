@@ -48,6 +48,17 @@ $detail = $bankapi->banking()->matchTransaction(
 `BankApi::__construct(string $apiKey, string $baseUrl = 'https://api.bankapi.vn', ...)`
 authenticates every request with an `X-API-Key: <apiKey>` header.
 
+> **Base URL is your organization host.** Org-scoped operations (banking,
+> webhook endpoints) must be called on your organization's own host —
+> `https://<your-org-slug>.bankapi.vn` — not the account-level API host.
+> Calling them on a non-organization host fails with
+> `403 "this operation must be accessed on an organization host"`. Pass your
+> org host as `$baseUrl`:
+>
+> ```php
+> $bankapi = new BankApi('bk_live_...', baseUrl: 'https://acme.bankapi.vn');
+> ```
+
 ### Pagination
 
 List methods (`banking()->transactions()`, `banking()->paymentIntents()`,
