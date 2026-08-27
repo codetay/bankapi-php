@@ -1,16 +1,16 @@
-# bankapi/bankapi-php
+# codetay/bankapi-php
 
 Official PHP SDK for [BankAPI.VN](https://api.bankapi.vn) — bank account
 connections, transaction listing/matching, payment intents, and webhook
 signature verification.
 
-Framework-agnostic. If you're on Laravel, use `bankapi/bankapi-laravel`
+Framework-agnostic. If you're on Laravel, use `codetay/bankapi-laravel`
 instead (service provider, facade, webhook middleware) — see its README.
 
 ## Install
 
 ```bash
-composer require bankapi/bankapi-php
+composer require codetay/bankapi-php
 ```
 
 The SDK talks HTTP through [PSR-18](https://www.php-fig.org/psr/psr-18/) and

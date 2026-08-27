@@ -1,5 +1,5 @@
 {
-    "name": "bankapi/bankapi-php",
+    "name": "codetay/bankapi-php",
     "description": "BankAPI.VN PHP SDK — API client and webhook signature verification",
     "type": "library",
     "license": "MIT",
