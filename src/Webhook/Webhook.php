@@ -20,7 +20,7 @@ final class Webhook
      * @param int                                $tolerance max |now - timestamp| in seconds (replay guard)
      * @param int|null                           $now overrides time() for tests
      */
-    public static function constructEvent(string $payload, array $headers, string $secret, int $tolerance = 300, ?int $now = null): Event
+    public static function constructEvent(string $payload, array $headers, #[\SensitiveParameter] string $secret, int $tolerance = 300, ?int $now = null): Event
     {
         if ($secret === '') {
             throw new SignatureVerificationException('webhook secret must not be empty');
@@ -53,9 +53,14 @@ final class Webhook
         $decoded = json_decode($payload, true);
         $decoded = is_array($decoded) ? $decoded : [];
         $data = is_array($decoded['data'] ?? null) ? $decoded['data'] : [];
-        $type = is_string($decoded['event'] ?? null) && $decoded['event'] !== '' ? $decoded['event'] : ($h['x-webhook-event'] ?? '');
+        // The event type comes from the SIGNED body only. X-Webhook-Event is
+        // outside the signed string, so honouring it would let a replayed
+        // delivery be re-labelled and routed down the wrong branch.
+        if (!is_string($decoded['event'] ?? null) || $decoded['event'] === '') {
+            throw new SignatureVerificationException('signed payload has no event type');
+        }
 
-        return new Event($type, $deliveryId, $timestamp, $data);
+        return new Event($decoded['event'], $deliveryId, $timestamp, $data);
     }
 
     /** @param array<string, string> $h */

@@ -28,7 +28,7 @@ final class HttpTransport
     private readonly \Closure $sleep;
 
     public function __construct(
-        private readonly string $apiKey,
+        #[\SensitiveParameter] private readonly string $apiKey,
         private readonly string $baseUrl,
         ?ClientInterface $client = null,
         ?RequestFactoryInterface $requestFactory = null,

@@ -23,4 +23,16 @@ final class CreatedEndpoint
             secret: (string) ($data['secret'] ?? ''),
         );
     }
+
+    /**
+     * Keep the signing secret out of var_dump()/debug output — dumping this
+     * object while wiring an integration is the easiest way to leak it into a
+     * log file.
+     *
+     * @return array<string, string>
+     */
+    public function __debugInfo(): array
+    {
+        return ['id' => $this->id, 'url' => $this->url, 'secret' => '***redacted***'];
+    }
 }

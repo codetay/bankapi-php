@@ -127,4 +127,24 @@ final class WebhookTest extends TestCase
         $this->expectException(SignatureVerificationException::class);
         Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
     }
+
+    public function testUnsignedEventHeaderIsNeverTrusted(): void
+    {
+        // The event type lives in the signed body; a delivery whose body has
+        // no event must be refused rather than take the header's word for it.
+        $secret = 'whsec_test';
+        $deliveryId = 'd-1';
+        $timestamp = (string) time();
+        $body = '{"data":{"amount":1000}}';
+        $signature = 'sha256=' . hash_hmac('sha256', $deliveryId . '.' . $timestamp . '.' . $body, $secret);
+
+        $this->expectException(SignatureVerificationException::class);
+        $this->expectExceptionMessage('signed payload has no event type');
+        Webhook::constructEvent($body, [
+            'X-Webhook-Event' => ['bank.credit'],
+            'X-Webhook-Delivery-Id' => [$deliveryId],
+            'X-Webhook-Timestamp' => [$timestamp],
+            'X-Webhook-Signature' => [$signature],
+        ], $secret);
+    }
 }

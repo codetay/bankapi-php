@@ -20,13 +20,44 @@ final class BankApi
     private ?WebhookEndpointService $webhookEndpoints = null;
 
     public function __construct(
-        string $apiKey,
+        #[\SensitiveParameter] string $apiKey,
         string $baseUrl = 'https://api.bankapi.vn',
         ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
         ?StreamFactoryInterface $streamFactory = null,
     ) {
-        $this->transport = new HttpTransport($apiKey, $baseUrl, $httpClient, $requestFactory, $streamFactory);
+        $this->transport = new HttpTransport(
+            $apiKey,
+            self::requireSecureBaseUrl($baseUrl),
+            $httpClient,
+            $requestFactory,
+            $streamFactory,
+        );
+    }
+
+    /**
+     * The API key rides on every request, so the base URL has to be https —
+     * a misconfigured "http://" would put it on the wire in clear text. Plain
+     * http is allowed only against a loopback host, for local development.
+     */
+    private static function requireSecureBaseUrl(string $baseUrl): string
+    {
+        $parts = parse_url(trim($baseUrl));
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        if ($host === '') {
+            throw new \InvalidArgumentException('BankAPI base URL must be an absolute URL, e.g. https://api.bankapi.vn');
+        }
+        $isLoopback = in_array($host, ['localhost', '127.0.0.1', '[::1]', '::1'], true);
+        if ($scheme !== 'https' && !($scheme === 'http' && $isLoopback)) {
+            throw new \InvalidArgumentException(sprintf(
+                'BankAPI base URL must use https (got "%s"); plain http is only allowed for loopback hosts.',
+                $scheme !== '' ? $scheme : '(none)'
+            ));
+        }
+
+        return rtrim($baseUrl, '/');
     }
 
     public function banking(): BankingService

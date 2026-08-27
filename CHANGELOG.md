@@ -4,6 +4,20 @@ All notable changes to `bankapi/bankapi-php` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security
+
+- The base URL must now be `https` (plain `http` is accepted only for loopback
+  hosts). The API key is sent on every request, so a mistyped `http://` no
+  longer puts it on the wire in clear text.
+- The webhook event type is read from the signed payload only. A delivery
+  whose signed body carries no `event` is rejected instead of falling back to
+  the unsigned `X-Webhook-Event` header, which a replayed delivery could
+  relabel.
+- `#[\SensitiveParameter]` on the API key and webhook secret keeps them out of
+  stack traces, and `CreatedEndpoint` redacts its signing secret when dumped.
+
 ## [0.1.0] - 2026-08-27
 
 ### Added

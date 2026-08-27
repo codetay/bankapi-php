@@ -25,6 +25,29 @@ You can also pass a specific PSR-18 client, request factory, and stream
 factory explicitly to `BankApi::__construct()` instead of relying on
 discovery.
 
+**Configure the client you pass in.** A discovered client runs with its own
+defaults, and Guzzle's default is no timeout at all — one hung API call then
+occupies a PHP-FPM worker until the socket closes. Two settings are worth
+making explicit in any client you hand to the SDK:
+
+```php
+$client = new \GuzzleHttp\Client([
+    'timeout' => 10,
+    'connect_timeout' => 5,
+    // The API key travels in the X-API-Key header, which Guzzle does NOT
+    // strip when a redirect changes host — don't follow redirects.
+    'allow_redirects' => false,
+]);
+
+$bankapi = new \BankApi\BankApi('bk_live_...', 'https://api.bankapi.vn', $client);
+```
+
+The Laravel package ships a client configured this way out of the box.
+
+The base URL must be `https` (plain `http` is accepted only for loopback
+hosts during local development); anything else is refused with an
+`InvalidArgumentException` rather than sending your API key in clear text.
+
 ## Quickstart
 
 ```php
