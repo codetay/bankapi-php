@@ -6,33 +6,46 @@ namespace BankApi\Tests;
 
 use BankApi\BankApi;
 use BankApi\Resource\CreatedEndpoint;
+use Http\Mock\Client as MockClient;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 
 final class BankApiTest extends TestCase
 {
+    /**
+     * Builds the client with explicit collaborators: base-URL validation must
+     * be testable without a PSR-18 implementation installed.
+     */
+    private static function client(string $baseUrl): BankApi
+    {
+        $factory = new Psr17Factory();
+
+        return new BankApi('bk_live_x', $baseUrl, new MockClient(), $factory, $factory);
+    }
+
     public function testPlainHttpBaseUrlIsRefused(): void
     {
         // The API key rides on every request; http would put it on the wire.
         $this->expectException(\InvalidArgumentException::class);
-        new BankApi('bk_live_x', 'http://api.bankapi.vn');
+        self::client('http://api.bankapi.vn');
     }
 
     public function testLoopbackHttpIsAllowedForLocalDevelopment(): void
     {
         $this->expectNotToPerformAssertions();
-        new BankApi('bk_test_x', 'http://localhost:8080');
+        self::client('http://localhost:8080');
     }
 
     public function testBaseUrlWithoutHostIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        new BankApi('bk_live_x', 'api.bankapi.vn');
+        self::client('api.bankapi.vn');
     }
 
     public function testHttpsBaseUrlIsAccepted(): void
     {
         $this->expectNotToPerformAssertions();
-        new BankApi('bk_live_x', 'https://api.bankapi.vn/');
+        self::client('https://api.bankapi.vn/');
     }
 
     public function testCreatedEndpointRedactsSecretWhenDumped(): void
