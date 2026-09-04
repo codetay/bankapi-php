@@ -50,7 +50,7 @@ kind, read the new `errorCode()` accessor instead.
 - `composer sync-spec` / `composer verify-spec` pin and check the OpenAPI
   fixture against a GO-KIT ref by lock
   (`packages/core/tests/fixtures/openapi.lock.json`); CI now checks out that
-  ref and runs `verify-spec` on the PHP 8.4 leg.
+  ref and runs `verify-spec` on every matrix leg.
 
 ### Changed
 
