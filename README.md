@@ -48,8 +48,9 @@ The base URL must be `https` (plain `http` is accepted only for loopback
 hosts during local development); anything else is refused with an
 `InvalidArgumentException` rather than sending your API key in clear text.
 Pass your API origin only (e.g. `https://acme.bankapi.vn`) — the SDK appends
-`/v1` itself, so a `baseUrl` that already ends in `/v1` is rejected instead
-of doubling the path.
+`/v1` itself (the public `HttpTransport::API_VERSION_PATH` constant), so a
+`baseUrl` that already ends in `/v1` is rejected instead of doubling the
+path.
 
 ## Quickstart
 
@@ -111,7 +112,9 @@ foreach ($page->autoPaging() as $transaction) {
 your own `idempotencyKey` to control retries explicitly, or omit it and the
 SDK generates one with `bin2hex(random_bytes(16))`. A retry with the same key
 and the same request body replays the first response instead of creating a
-second intent.
+second intent. `ApiException::$replayed` is true only when the replayed
+response was itself an error; a successful replay returns the same intent
+(same `id`), which is all a caller needs.
 
 ```php
 $intent = $bankapi->banking()->createPaymentIntent(
@@ -144,10 +147,13 @@ use BankApi\Exception\ApiException;
 try {
     $bankapi->banking()->createPaymentIntent(code: 'PN-1042', expectedAmount: 150_000, idempotencyKey: $key);
 } catch (ApiException $e) {
-    echo $e->errorCode() . ' ' . ($e->replayed ? 'replayed' : 'not replayed') . "\n";
+    echo $e->errorCode() . "\n";
     if ($e->errorCode() === ErrorCode::IDEMPOTENCY_IN_PROGRESS) {
         // the first request with this key is still executing — back off and retry
     }
+    // $e->replayed would be true here only if this error was itself a
+    // replayed response — the idempotency.* errors above never carry
+    // Idempotent-Replayed, so it stays false for both of them.
 }
 ```
 
