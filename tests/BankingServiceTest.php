@@ -6,6 +6,7 @@ namespace BankApi\Tests;
 
 use BankApi\BankApi;
 use BankApi\Resource\Connection;
+use BankApi\Resource\PaymentIntent;
 use BankApi\Resource\Transaction;
 use BankApi\Resource\TransactionDetail;
 use Http\Mock\Client as MockClient;
@@ -100,5 +101,49 @@ final class BankingServiceTest extends TestCase
         self::assertSame('days=7', $this->mock->getLastRequest()->getUri()->getQuery());
         self::assertSame(3, $s->count);
         self::assertSame(1, $s->matchCounts['matched']);
+    }
+
+    public function testCreatePaymentIntentPostsSnakeCaseBodyWithAGeneratedKey(): void
+    {
+        $this->respond(['id' => 'i1', 'code' => 'PN-1', 'expected_amount' => 150000, 'status' => 'pending',
+            'matched_transaction_id' => '', 'expires_at' => '2026-09-05T00:00:00Z']);
+
+        $intent = $this->client->banking()->createPaymentIntent('PN-1', 150000);
+
+        $req = $this->mock->getLastRequest();
+        self::assertSame('POST', $req->getMethod());
+        self::assertSame('/v1/banking/payment-intents', $req->getUri()->getPath());
+        self::assertSame(['code' => 'PN-1', 'expected_amount' => 150000], json_decode((string) $req->getBody(), true));
+        self::assertMatchesRegularExpression('/^[A-Za-z0-9_-]{1,64}$/', $req->getHeaderLine('Idempotency-Key'));
+        self::assertInstanceOf(PaymentIntent::class, $intent);
+        self::assertSame('i1', $intent->id);
+    }
+
+    public function testCreatePaymentIntentPassesThroughExpiresInSecsAndACustomKey(): void
+    {
+        $this->respond(['id' => 'i1', 'code' => 'PN-1', 'expected_amount' => 150000, 'status' => 'pending',
+            'matched_transaction_id' => '', 'expires_at' => '2026-09-05T00:00:00Z']);
+
+        $this->client->banking()->createPaymentIntent('PN-1', 150000, 900, 'order-1042-attempt-1');
+
+        $req = $this->mock->getLastRequest();
+        self::assertSame(
+            ['code' => 'PN-1', 'expected_amount' => 150000, 'expires_in_secs' => 900],
+            json_decode((string) $req->getBody(), true),
+        );
+        self::assertSame('order-1042-attempt-1', $req->getHeaderLine('Idempotency-Key'));
+    }
+
+    public function testPaymentIntentGetsByIdAndMapsTheResponse(): void
+    {
+        $this->respond(['id' => 'i1', 'code' => 'PN-1', 'expected_amount' => 150000, 'status' => 'matched',
+            'matched_transaction_id' => 't1', 'expires_at' => '2026-09-05T00:00:00Z']);
+
+        $intent = $this->client->banking()->paymentIntent('i1');
+
+        self::assertSame('GET', $this->mock->getLastRequest()->getMethod());
+        self::assertSame('/v1/banking/payment-intents/i1', $this->mock->getLastRequest()->getUri()->getPath());
+        self::assertInstanceOf(PaymentIntent::class, $intent);
+        self::assertSame('matched', $intent->status);
     }
 }

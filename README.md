@@ -102,6 +102,52 @@ foreach ($page->autoPaging() as $transaction) {
 }
 ```
 
+## Payment intents
+
+`createPaymentIntent` and `webhookEndpoints()->create()` are idempotent: pass
+your own `idempotencyKey` to control retries explicitly, or omit it and the
+SDK generates one with `bin2hex(random_bytes(16))`. A retry with the same key
+and the same request body replays the first response instead of creating a
+second intent.
+
+```php
+$intent = $bankapi->banking()->createPaymentIntent(
+    code: 'PN-1042',
+    expectedAmount: 150_000,
+    expiresInSecs: 900, // optional; server default when omitted
+);
+echo "{$intent->id}: {$intent->status}\n";
+
+// Pass your own key so a retried request is guaranteed to replay, not double-create
+$retried = $bankapi->banking()->createPaymentIntent(
+    code: 'PN-1042',
+    expectedAmount: 150_000,
+    idempotencyKey: 'order-1042-attempt-1',
+);
+
+$current = $bankapi->banking()->paymentIntent($intent->id);
+```
+
+`ApiException::errorCode()` is the registry error code (`problem.type` with
+the `urn:bankapi:error:` prefix stripped), typed `?string` since a server can
+roll out a new code before this SDK is regenerated. Compare it against
+`BankApi\ErrorCode` constants, or use `ErrorCode::isKnown()` to check whether
+it's one this SDK knows about:
+
+```php
+use BankApi\ErrorCode;
+use BankApi\Exception\ApiException;
+
+try {
+    $bankapi->banking()->createPaymentIntent(code: 'PN-1042', expectedAmount: 150_000, idempotencyKey: $key);
+} catch (ApiException $e) {
+    echo $e->errorCode() . ' ' . ($e->replayed ? 'replayed' : 'not replayed') . "\n";
+    if ($e->errorCode() === ErrorCode::IDEMPOTENCY_IN_PROGRESS) {
+        // the first request with this key is still executing — back off and retry
+    }
+}
+```
+
 ## Webhook verification
 
 Verify the signature on every incoming webhook request before trusting its

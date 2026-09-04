@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BankApi\Tests\Contract;
 
+use BankApi\ErrorCode;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -23,6 +24,8 @@ final class OpenApiContractTest extends TestCase
         ['get', '/banking/transactions/{txId}'],
         ['post', '/banking/transactions/{txId}/match'],
         ['get', '/banking/payment-intents'],
+        ['post', '/banking/payment-intents'],
+        ['get', '/banking/payment-intents/{intentId}'],
         ['get', '/webhooks'],
         ['post', '/webhooks'],
         ['get', '/webhooks/{endpointId}'],
@@ -37,6 +40,7 @@ final class OpenApiContractTest extends TestCase
         'TransactionDetail' => ['id', 'amount', 'direction', 'bank_ref', 'connection_id', 'description', 'match_status', 'matched_intent_id', 'match_review_reason', 'account_number_masked', 'transaction_date', 'created_at', 'last_seen_at', 'redelivery_count'],
         'BankConnectionItem' => ['id', 'bank_code', 'label', 'status', 'account_type', 'account_number', 'account_number_masked', 'balance', 'capabilities', 'created_at', 'verified_at'],
         'IntentResponse' => ['id', 'code', 'expected_amount', 'status', 'matched_transaction_id', 'expires_at'],
+        'IntentCreateInputBody' => ['code', 'expected_amount', 'expires_in_secs'],
         'EndpointBody' => ['id', 'url', 'event_types', 'active', 'description', 'failure_count'],
         'CreateEndpointOutputBody' => ['id', 'url', 'secret'],
         'DeliveryItem' => ['id', 'event_type', 'attempt', 'status_code', 'error', 'created_at'],
@@ -70,6 +74,43 @@ final class OpenApiContractTest extends TestCase
             foreach ($fields as $field) {
                 self::assertArrayHasKey($field, $props, "schema {$schema} lost field {$field}");
             }
+        }
+    }
+
+    public function testErrorCodeAllMatchesTheRegistrySorted(): void
+    {
+        $codes = array_map(
+            static fn (array $entry): string => (string) $entry['code'],
+            self::spec()['x-error-code-registry'],
+        );
+        $codes = array_values(array_unique($codes));
+        sort($codes, SORT_STRING);
+
+        self::assertSame($codes, ErrorCode::ALL);
+    }
+
+    public function testEveryIdempotentOperationDeclaresTheHeaderParameter(): void
+    {
+        $idempotentOps = [];
+        foreach (self::spec()['paths'] as $path => $methods) {
+            foreach ($methods as $method => $op) {
+                if (($op['x-idempotent'] ?? false) === true) {
+                    $idempotentOps[] = [$path, $method, $op];
+                }
+            }
+        }
+
+        self::assertCount(6, $idempotentOps, 'expected exactly 6 x-idempotent operations');
+
+        foreach ($idempotentOps as [$path, $method, $op]) {
+            $hasHeader = false;
+            foreach ($op['parameters'] ?? [] as $param) {
+                if (($param['in'] ?? null) === 'header' && ($param['name'] ?? null) === 'Idempotency-Key') {
+                    $hasHeader = true;
+                    break;
+                }
+            }
+            self::assertTrue($hasHeader, "{$method} {$path} is x-idempotent but missing the Idempotency-Key header parameter");
         }
     }
 }

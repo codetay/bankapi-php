@@ -16,14 +16,20 @@ final class WebhookEndpointService
     {
     }
 
-    /** @param list<string> $eventTypes */
-    public function create(string $url, array $eventTypes, string $description = ''): CreatedEndpoint
+    /**
+     * x-idempotent: retried with the same key, this replays the first response
+     * instead of creating a second endpoint. A key is generated when omitted.
+     * The returned secret is shown only here — store it before it is lost.
+     *
+     * @param list<string> $eventTypes
+     */
+    public function create(string $url, array $eventTypes, string $description = '', ?string $idempotencyKey = null): CreatedEndpoint
     {
         return CreatedEndpoint::fromArray($this->transport->request('POST', '/webhooks', [], [
             'url' => $url,
             'event_types' => $eventTypes,
             'description' => $description,
-        ]));
+        ], $idempotencyKey ?? bin2hex(random_bytes(16))));
     }
 
     /** @return Page<WebhookEndpoint> */

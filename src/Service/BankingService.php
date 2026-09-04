@@ -101,4 +101,29 @@ final class BankingService
             fn (string $c): Page => $this->paymentIntents($status, $limit, $c),
         );
     }
+
+    /**
+     * x-idempotent: retried with the same key, this replays the first response
+     * instead of creating a second intent. A key is generated when omitted.
+     */
+    public function createPaymentIntent(string $code, int $expectedAmount, ?int $expiresInSecs = null, ?string $idempotencyKey = null): PaymentIntent
+    {
+        $body = ['code' => $code, 'expected_amount' => $expectedAmount];
+        if ($expiresInSecs !== null) {
+            $body['expires_in_secs'] = $expiresInSecs;
+        }
+
+        return PaymentIntent::fromArray($this->transport->request(
+            'POST',
+            '/banking/payment-intents',
+            [],
+            $body,
+            $idempotencyKey ?? bin2hex(random_bytes(16)),
+        ));
+    }
+
+    public function paymentIntent(string $id): PaymentIntent
+    {
+        return PaymentIntent::fromArray($this->transport->request('GET', '/banking/payment-intents/' . rawurlencode($id)));
+    }
 }

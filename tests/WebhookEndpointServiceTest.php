@@ -45,6 +45,27 @@ final class WebhookEndpointServiceTest extends TestCase
         self::assertSame('whsec_abc', $created->secret);
     }
 
+    public function testCreateSendsAGeneratedIdempotencyKeyWhenNoneGiven(): void
+    {
+        $this->respond(201, ['id' => 'w1', 'url' => 'https://shop.vn/hook', 'secret' => 'whsec_abc']);
+
+        $this->client->webhookEndpoints()->create('https://shop.vn/hook', ['bank.credit']);
+
+        self::assertMatchesRegularExpression(
+            '/^[A-Za-z0-9_-]{1,64}$/',
+            $this->mock->getLastRequest()->getHeaderLine('Idempotency-Key'),
+        );
+    }
+
+    public function testCreatePassesThroughACustomIdempotencyKey(): void
+    {
+        $this->respond(201, ['id' => 'w1', 'url' => 'https://shop.vn/hook', 'secret' => 'whsec_abc']);
+
+        $this->client->webhookEndpoints()->create('https://shop.vn/hook', ['bank.credit'], 'đơn hàng', 'retry-key-1');
+
+        self::assertSame('retry-key-1', $this->mock->getLastRequest()->getHeaderLine('Idempotency-Key'));
+    }
+
     public function testAllMapsEndpoints(): void
     {
         $this->respond(200, ['items' => [
