@@ -61,6 +61,18 @@ final class BankApiTest extends TestCase
         self::client('https://acme.bankapi.vn/v1/');
     }
 
+    public function testBaseUrlEndingInV1WithTrailingWhitespaceIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        self::client('https://acme.bankapi.vn/v1 ');
+    }
+
+    public function testBaseUrlEndingInV1UppercaseIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        self::client('https://acme.bankapi.vn/V1');
+    }
+
     public function testCreatedEndpointRedactsSecretWhenDumped(): void
     {
         $endpoint = CreatedEndpoint::fromArray(['id' => 'ep_1', 'url' => 'https://shop.vn/hook', 'secret' => 'whsec_supersecret']);

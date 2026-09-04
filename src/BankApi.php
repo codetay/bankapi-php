@@ -57,8 +57,8 @@ final class BankApi
             ));
         }
 
-        $trimmed = rtrim($baseUrl, '/');
-        if (str_ends_with($trimmed, HttpTransport::API_VERSION_PATH)) {
+        $trimmed = rtrim(trim($baseUrl), '/');
+        if (str_ends_with(strtolower($trimmed), HttpTransport::API_VERSION_PATH)) {
             throw new \InvalidArgumentException(
                 'baseUrl must be the API origin (e.g. https://acme.bankapi.vn); the SDK appends /v1'
             );
