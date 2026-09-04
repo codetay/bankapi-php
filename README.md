@@ -10,7 +10,7 @@ instead (service provider, facade, webhook middleware) — see its README.
 ## Install
 
 ```bash
-composer require codetay/bankapi-php
+composer require codetay/bankapi-php:^1.0
 ```
 
 The SDK talks HTTP through [PSR-18](https://www.php-fig.org/psr/psr-18/) and
@@ -47,6 +47,9 @@ The Laravel package ships a client configured this way out of the box.
 The base URL must be `https` (plain `http` is accepted only for loopback
 hosts during local development); anything else is refused with an
 `InvalidArgumentException` rather than sending your API key in clear text.
+Pass your API origin only (e.g. `https://acme.bankapi.vn`) — the SDK appends
+`/v1` itself, so a `baseUrl` that already ends in `/v1` is rejected instead
+of doubling the path.
 
 ## Quickstart
 

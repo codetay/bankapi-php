@@ -4,7 +4,67 @@ All notable changes to `codetay/bankapi-php` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] - 2026-09-04
+
+The SDK now targets the frozen GO-KIT API contract (pinned by
+`packages/core/tests/fixtures/openapi.lock.json`), which moved every
+endpoint under `/v1`. **Migrating from 0.1:** if you were passing a
+`baseUrl` that already ended in `/v1`, drop the suffix — the SDK appends it
+now and rejects a `baseUrl` that already has it. If you constructed
+`ApiException` (or a subclass) directly with positional constructor
+arguments including `$previous`, pass it as a named `previous:` argument
+instead — the constructor gained `$errorCode` and `$replayed` parameters
+before it. If you inspected exception messages to branch on the failure
+kind, read the new `errorCode()` accessor instead.
+
+### Breaking
+
+- Every request is now sent under `/v1` (`HttpTransport` appends the
+  exported `API_VERSION_PATH` constant after `baseUrl`). `baseUrl` must be
+  the API origin only (e.g. `https://acme.bankapi.vn`) — a `baseUrl` that
+  already ends in `/v1` now throws `InvalidArgumentException` instead of
+  doubling the path.
+- `ApiException::__construct()` gained two parameters, `?string $errorCode`
+  and `bool $replayed`, inserted before the existing `?\Throwable $previous`.
+  Code that constructed `ApiException` (or a subclass) directly with a
+  positional `$previous` argument must switch to a named `previous:`
+  argument.
+
+### Added
+
+- `BankingService::createPaymentIntent()` and `BankingService::paymentIntent()`.
+- Optional `idempotencyKey` argument on `createPaymentIntent` and
+  `WebhookEndpointService::create()`: validated against
+  `^[A-Za-z0-9_-]{1,64}$` (rejected client-side with
+  `InvalidArgumentException` before any request is sent) and sent as the
+  `Idempotency-Key` header; both methods generate one with
+  `bin2hex(random_bytes(16))` when the caller omits it.
+- `ApiException::errorCode()` — the registry error code from `problem.type`
+  with the `urn:bankapi:error:` prefix stripped (`null` for any other
+  shape) — and a `$replayed` property, read from the `Idempotent-Replayed`
+  response header. A dedicated accessor keeps this from being confused with
+  the inherited int-typed `Exception::getCode()`, which `ApiException` does
+  not override.
+- Generated `BankApi\ErrorCode` class (`ErrorCode::ALL`, `ErrorCode::isKnown()`),
+  pinned to the GO-KIT error-code registry via `composer gen:error-codes`.
+- `composer sync-spec` / `composer verify-spec` pin and check the OpenAPI
+  fixture against a GO-KIT ref by lock
+  (`packages/core/tests/fixtures/openapi.lock.json`); CI now checks out that
+  ref and runs `verify-spec` on the PHP 8.4 leg.
+
+### Changed
+
+- The OpenAPI fixture and contract tests now track the frozen GO-KIT
+  `4ef6a7c` contract instead of the pre-freeze spec.
+
+### Known limitations
+
+- `ApiException::$replayed` is true only when the replayed response was
+  itself an error; a successful replay returns the same intent (same `id`),
+  which is all a caller needs — a replayed 2xx cannot be told apart from a
+  fresh create by any response field, and the 409
+  `idempotency.in_progress` / 422 `idempotency.key_reused` errors do not
+  carry `Idempotent-Replayed` either.
 
 ### Security
 

@@ -13,7 +13,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 /** Entry point. Omit $httpClient to auto-discover any installed PSR-18 client. */
 final class BankApi
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '1.0.0';
 
     private readonly HttpTransport $transport;
     private ?BankingService $banking = null;
