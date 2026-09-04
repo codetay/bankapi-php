@@ -39,7 +39,7 @@ final class BankingServiceTest extends TestCase
         $page = $this->client->banking()->transactions(limit: 10, direction: 'credit', matchStatus: 'unmatched');
 
         $req = $this->mock->getLastRequest();
-        self::assertSame('/banking/transactions', $req->getUri()->getPath());
+        self::assertSame('/v1/banking/transactions', $req->getUri()->getPath());
         self::assertSame('limit=10&direction=credit&match_status=unmatched', $req->getUri()->getQuery());
         self::assertCount(1, $page->items);
         self::assertInstanceOf(Transaction::class, $page->items[0]);
@@ -83,7 +83,7 @@ final class BankingServiceTest extends TestCase
 
         $req = $this->mock->getLastRequest();
         self::assertSame('POST', $req->getMethod());
-        self::assertSame('/banking/transactions/t1/match', $req->getUri()->getPath());
+        self::assertSame('/v1/banking/transactions/t1/match', $req->getUri()->getPath());
         self::assertSame('{"intent_id":"i9"}', (string) $req->getBody());
         self::assertInstanceOf(TransactionDetail::class, $tx);
         self::assertSame('matched', $tx->matchStatus);

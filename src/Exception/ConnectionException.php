@@ -12,6 +12,6 @@ class ConnectionException extends ApiException
 {
     public function __construct(string $detail, ?\Throwable $previous = null)
     {
-        parent::__construct(0, 'Connection error', $detail, [], $previous);
+        parent::__construct(0, 'Connection error', $detail, [], previous: $previous);
     }
 }

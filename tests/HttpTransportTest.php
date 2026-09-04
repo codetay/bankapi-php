@@ -42,7 +42,7 @@ final class HttpTransportTest extends TestCase
         $req = $this->mock->getLastRequest();
         self::assertSame('bk_test_key', $req->getHeaderLine('X-API-Key'));
         self::assertSame('GET', $req->getMethod());
-        self::assertSame('/banking/transactions', $req->getUri()->getPath());
+        self::assertSame('/v1/banking/transactions', $req->getUri()->getPath());
         self::assertSame('limit=5&q=' . rawurlencode('cafe sáng'), $req->getUri()->getQuery());
         self::assertSame(['ok' => true], $out);
     }
@@ -186,6 +186,77 @@ final class HttpTransportTest extends TestCase
             self::fail('error path must stay lenient, not throw MalformedResponseException');
         } catch (\BankApi\Exception\ApiException $e) {
             self::assertSame(500, $e->status);
+        }
+    }
+
+    public function testJoinsBaseUrlUnderV1WithoutQuery(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse($this->json(200, ['ok' => true]));
+
+        $t->request('GET', '/banking/summary');
+
+        self::assertSame('/v1/banking/summary', $this->mock->getLastRequest()->getUri()->getPath());
+    }
+
+    public function testJoinsBaseUrlUnderV1WithQuery(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse($this->json(200, ['ok' => true]));
+
+        $t->request('GET', '/banking/summary', ['days' => 7]);
+
+        $uri = $this->mock->getLastRequest()->getUri();
+        self::assertSame('/v1/banking/summary', $uri->getPath());
+        self::assertSame('days=7', $uri->getQuery());
+    }
+
+    public function testApiVersionPathConstantIsV1(): void
+    {
+        self::assertSame('/v1', HttpTransport::API_VERSION_PATH);
+    }
+
+    public function testSendsIdempotencyKeyHeaderVerbatim(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse($this->json(200, []));
+
+        $t->request('POST', '/webhooks', [], ['url' => 'https://x.vn'], 'retry-key_1');
+
+        self::assertSame('retry-key_1', $this->mock->getLastRequest()->getHeaderLine('Idempotency-Key'));
+    }
+
+    public function testOmitsIdempotencyKeyHeaderWhenNotGiven(): void
+    {
+        $t = $this->transport();
+        $this->mock->addResponse($this->json(200, []));
+
+        $t->request('POST', '/webhooks', [], ['url' => 'https://x.vn']);
+
+        self::assertFalse($this->mock->getLastRequest()->hasHeader('Idempotency-Key'));
+    }
+
+    public function testRejectsInvalidIdempotencyKeyBeforeAnyRequest(): void
+    {
+        $t = $this->transport();
+
+        try {
+            $t->request('POST', '/webhooks', [], ['url' => 'https://x.vn'], 'bad key!');
+            self::fail('expected InvalidArgumentException');
+        } catch (\InvalidArgumentException) {
+            self::assertCount(0, $this->mock->getRequests());
+        }
+    }
+
+    public function testRejectsIdempotencyKeyLongerThan64CharsBeforeAnyRequest(): void
+    {
+        $t = $this->transport();
+
+        try {
+            $t->request('POST', '/webhooks', [], ['url' => 'https://x.vn'], str_repeat('a', 65));
+            self::fail('expected InvalidArgumentException');
+        } catch (\InvalidArgumentException) {
+            self::assertCount(0, $this->mock->getRequests());
         }
     }
 }

@@ -21,6 +21,11 @@ use Psr\Http\Message\StreamFactoryInterface;
  */
 final class HttpTransport
 {
+    /** Every path this transport builds is joined under this API version prefix. */
+    public const API_VERSION_PATH = '/v1';
+
+    private const IDEMPOTENCY_KEY_PATTERN = '/^[A-Za-z0-9_-]{1,64}$/';
+
     private readonly ClientInterface $client;
     private readonly RequestFactoryInterface $requestFactory;
     private readonly StreamFactoryInterface $streamFactory;
@@ -50,12 +55,16 @@ final class HttpTransport
      *
      * @return array<string, mixed>
      */
-    public function request(string $method, string $path, array $query = [], ?array $body = null): array
+    public function request(string $method, string $path, array $query = [], ?array $body = null, ?string $idempotencyKey = null): array
     {
+        if ($idempotencyKey !== null) {
+            $this->validateIdempotencyKey($idempotencyKey);
+        }
+
         $attempt = 0;
         while (true) {
             try {
-                $response = $this->client->sendRequest($this->buildRequest($method, $path, $query, $body));
+                $response = $this->client->sendRequest($this->buildRequest($method, $path, $query, $body, $idempotencyKey));
             } catch (ClientExceptionInterface $e) {
                 if ($this->shouldRetry($method, $attempt)) {
                     $this->backoff(++$attempt);
@@ -78,12 +87,26 @@ final class HttpTransport
     }
 
     /**
+     * The API would reject a malformed key with a 422, but checking the
+     * pattern client-side fails fast without a round trip.
+     */
+    private function validateIdempotencyKey(string $idempotencyKey): void
+    {
+        if (preg_match(self::IDEMPOTENCY_KEY_PATTERN, $idempotencyKey) !== 1) {
+            throw new \InvalidArgumentException(sprintf(
+                'Idempotency-Key must be 1-64 characters of letters, digits, "_" or "-" (got %s).',
+                var_export($idempotencyKey, true)
+            ));
+        }
+    }
+
+    /**
      * @param array<string, int|string> $query
      * @param array<string, mixed>|null $body
      */
-    private function buildRequest(string $method, string $path, array $query, ?array $body): \Psr\Http\Message\RequestInterface
+    private function buildRequest(string $method, string $path, array $query, ?array $body, ?string $idempotencyKey = null): \Psr\Http\Message\RequestInterface
     {
-        $uri = rtrim($this->baseUrl, '/') . $path;
+        $uri = rtrim($this->baseUrl, '/') . self::API_VERSION_PATH . $path;
         if ($query !== []) {
             $uri .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
@@ -92,6 +115,10 @@ final class HttpTransport
             ->withHeader('X-API-Key', $this->apiKey)
             ->withHeader('Accept', 'application/json')
             ->withHeader('User-Agent', 'bankapi-php/' . BankApi::VERSION);
+
+        if ($idempotencyKey !== null) {
+            $request = $request->withHeader('Idempotency-Key', $idempotencyKey);
+        }
 
         if ($body !== null) {
             $request = $request

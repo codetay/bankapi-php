@@ -57,7 +57,14 @@ final class BankApi
             ));
         }
 
-        return rtrim($baseUrl, '/');
+        $trimmed = rtrim($baseUrl, '/');
+        if (str_ends_with($trimmed, HttpTransport::API_VERSION_PATH)) {
+            throw new \InvalidArgumentException(
+                'baseUrl must be the API origin (e.g. https://acme.bankapi.vn); the SDK appends /v1'
+            );
+        }
+
+        return $trimmed;
     }
 
     public function banking(): BankingService

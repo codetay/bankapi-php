@@ -36,7 +36,7 @@ final class WebhookEndpointServiceTest extends TestCase
 
         $req = $this->mock->getLastRequest();
         self::assertSame('POST', $req->getMethod());
-        self::assertSame('/webhooks', $req->getUri()->getPath());
+        self::assertSame('/v1/webhooks', $req->getUri()->getPath());
         self::assertSame(
             ['url' => 'https://shop.vn/hook', 'event_types' => ['bank.credit'], 'description' => 'đơn hàng'],
             json_decode((string) $req->getBody(), true),
@@ -63,12 +63,12 @@ final class WebhookEndpointServiceTest extends TestCase
         $this->respond(200, []);
         $this->client->webhookEndpoints()->delete('w1');
         self::assertSame('DELETE', $this->mock->getLastRequest()->getMethod());
-        self::assertSame('/webhooks/w1', $this->mock->getLastRequest()->getUri()->getPath());
+        self::assertSame('/v1/webhooks/w1', $this->mock->getLastRequest()->getUri()->getPath());
 
         $this->respond(200, []);
         $this->client->webhookEndpoints()->enable('w1');
         self::assertSame('POST', $this->mock->getLastRequest()->getMethod());
-        self::assertSame('/webhooks/w1/enable', $this->mock->getLastRequest()->getUri()->getPath());
+        self::assertSame('/v1/webhooks/w1/enable', $this->mock->getLastRequest()->getUri()->getPath());
     }
 
     public function testDeliveriesMapsItems(): void
@@ -79,7 +79,7 @@ final class WebhookEndpointServiceTest extends TestCase
 
         $page = $this->client->webhookEndpoints()->deliveries('w1');
 
-        self::assertSame('/webhooks/w1/deliveries', $this->mock->getLastRequest()->getUri()->getPath());
+        self::assertSame('/v1/webhooks/w1/deliveries', $this->mock->getLastRequest()->getUri()->getPath());
         self::assertInstanceOf(Delivery::class, $page->items[0]);
         self::assertSame(500, $page->items[0]->statusCode);
         self::assertSame('n1', $page->nextCursor);

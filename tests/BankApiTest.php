@@ -48,6 +48,19 @@ final class BankApiTest extends TestCase
         self::client('https://api.bankapi.vn/');
     }
 
+    public function testBaseUrlEndingInV1IsRejected(): void
+    {
+        // The SDK appends /v1 itself; a caller-supplied /v1 would double up.
+        $this->expectException(\InvalidArgumentException::class);
+        self::client('https://acme.bankapi.vn/v1');
+    }
+
+    public function testBaseUrlEndingInV1WithTrailingSlashIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        self::client('https://acme.bankapi.vn/v1/');
+    }
+
     public function testCreatedEndpointRedactsSecretWhenDumped(): void
     {
         $endpoint = CreatedEndpoint::fromArray(['id' => 'ep_1', 'url' => 'https://shop.vn/hook', 'secret' => 'whsec_supersecret']);

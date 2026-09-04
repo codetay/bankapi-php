@@ -13,7 +13,9 @@ class RateLimitException extends ApiException
         string $detail,
         array $body = [],
         public readonly ?int $retryAfter = null,
+        ?string $errorCode = null,
+        bool $replayed = false,
     ) {
-        parent::__construct($status, $title, $detail, $body);
+        parent::__construct($status, $title, $detail, $body, $errorCode, $replayed);
     }
 }
