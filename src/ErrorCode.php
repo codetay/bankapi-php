@@ -51,6 +51,7 @@ final class ErrorCode
     public const IDEMPOTENCY_KEY_REUSED = 'idempotency.key_reused';
     public const ORG_HAS_ACTIVE_BANK_CONSENT = 'org.has_active_bank_consent';
     public const ORG_HAS_BANK_TRANSACTIONS = 'org.has_bank_transactions';
+    public const ORG_HAS_CREDIT_LEDGER = 'org.has_credit_ledger';
     public const ORG_MEMBER_LAST_OWNER = 'org.member_last_owner';
     public const PAYMENT_GATEWAY_UNAVAILABLE = 'payment.gateway_unavailable';
     public const PAYMENT_STATE_INVALID = 'payment.state_invalid';
@@ -109,6 +110,7 @@ final class ErrorCode
         'idempotency.key_reused',
         'org.has_active_bank_consent',
         'org.has_bank_transactions',
+        'org.has_credit_ledger',
         'org.member_last_owner',
         'payment.gateway_unavailable',
         'payment.state_invalid',
