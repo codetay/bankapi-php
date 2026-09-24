@@ -5,146 +5,146 @@ declare(strict_types=1);
 namespace BankApi\Tests;
 
 use BankApi\Exception\SignatureVerificationException;
+use BankApi\Webhook\EventType;
 use BankApi\Webhook\Webhook;
 use PHPUnit\Framework\TestCase;
 
 final class WebhookTest extends TestCase
 {
-    /** @return list<array{secret: string, delivery_id: string, timestamp: string, body: string, signature_header: string}> */
-    private static function vectors(): array
+    /** @return array{tolerance_seconds: int, standard_webhooks_reference: array<string, string>, vectors: list<array<string, string>>} */
+    private static function file(): array
     {
         return json_decode((string) file_get_contents(__DIR__ . '/fixtures/webhook_vectors.json'), true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    /** @return array<string, string> */
+    private static function vector(string $name): array
+    {
+        foreach (self::file()['vectors'] as $v) {
+            if ($v['name'] === $name) {
+                return $v;
+            }
+        }
+        self::fail("vector {$name} missing from the GO-KIT fixture");
     }
 
     /** @return array<string, list<string>> */
     private static function headersFor(array $v): array
     {
-        $decoded = json_decode($v['body'], true);
-
         return [
-            'X-Webhook-Event' => [$decoded['event']],
-            'X-Webhook-Delivery-Id' => [$v['delivery_id']],
-            'X-Webhook-Timestamp' => [$v['timestamp']],
-            'X-Webhook-Signature' => [$v['signature_header']],
+            'webhook-id' => [$v['msg_id']],
+            'webhook-timestamp' => [$v['timestamp']],
+            'webhook-signature' => [$v['signature_header']],
         ];
     }
 
-    public function testGoldenVectorsAllVerify(): void
+    public function testEveryGoldenVectorVerifiesWithEitherSecret(): void
     {
-        foreach (self::vectors() as $v) {
+        $vectors = self::file()['vectors'];
+        self::assertGreaterThanOrEqual(7, count($vectors));
+        foreach ($vectors as $v) {
             $event = Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp']);
-            $decoded = json_decode($v['body'], true);
-            self::assertSame($decoded['event'], $event->type);
-            self::assertSame($v['delivery_id'], $event->deliveryId);
-            self::assertSame((int) $v['timestamp'], $event->timestamp);
-            self::assertSame($decoded['data'], $event->data);
+            self::assertSame($v['msg_id'], $event->webhookId);
+            self::assertSame('v1', $event->apiVersion);
+            if (isset($v['previous_secret'])) {
+                self::assertSame($event->id, Webhook::constructEvent($v['body'], self::headersFor($v), $v['previous_secret'], 300, (int) $v['timestamp'])->id);
+            }
+        }
+    }
+
+    public function testStandardWebhooksReferenceSignature(): void
+    {
+        $ref = self::file()['standard_webhooks_reference'];
+        [$id] = Webhook::verify($ref['body'], self::headersFor($ref), $ref['secret'], 300, (int) $ref['timestamp']);
+        self::assertSame($ref['msg_id'], $id);
+    }
+
+    public function testLegacyUrlSafeSecretVerifies(): void
+    {
+        $v = self::vector('bank.credit.legacy_urlsafe_secret');
+        self::assertMatchesRegularExpression('/[-_]/', $v['secret']);
+        self::assertSame(32, strlen(Webhook::decodeSecret($v['secret'])));
+        self::assertSame(EventType::BANK_CREDIT, Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp'])->type);
+    }
+
+    public function testAmountAboveTwoPow53StaysAnExactInt(): void
+    {
+        $v = self::vector('bank.credit.amount_above_2_pow_53');
+        $event = Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp']);
+        self::assertSame(9007199254740993, $event->data['amount']);
+    }
+
+    public function testFlowOutputCarriesItsTrigger(): void
+    {
+        $v = self::vector('flow.output');
+        $event = Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp']);
+        self::assertSame(EventType::FLOW_OUTPUT, $event->type);
+        self::assertSame(EventType::BANK_CREDIT, $event->trigger['type'] ?? null);
+        self::assertSame(['order' => 'DH1245', 'paid' => true], $event->data);
+    }
+
+    public function testUnknownTypeIsNotAnError(): void
+    {
+        $v = self::vector('unknown.future_event');
+        $event = Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp']);
+        self::assertSame('bank.future_event', $event->type);
+        self::assertFalse($event->isKnown());
+    }
+
+    public function testToleranceIsSymmetric(): void
+    {
+        $v = self::vector('bank.credit');
+        $ts = (int) $v['timestamp'];
+        foreach ([$ts - 300, $ts + 300] as $now) {
+            self::assertSame($v['msg_id'], Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, $now)->webhookId);
+        }
+        foreach ([$ts - 301, $ts + 301] as $now) {
+            try {
+                Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, $now);
+                self::fail("now={$now} must be outside the tolerance");
+            } catch (SignatureVerificationException $e) {
+                self::assertStringContainsString('tolerance', $e->getMessage());
+            }
+        }
+    }
+
+    public function testTamperingAndNonV1EntriesFail(): void
+    {
+        $v = self::vector('bank.credit');
+        $now = (int) $v['timestamp'];
+        $cases = [
+            'body' => [$v['body'] . ' ', self::headersFor($v)],
+            'id' => [$v['body'], ['webhook-id' => ['other']] + self::headersFor($v)],
+            'v2' => [$v['body'], ['webhook-signature' => [preg_replace('/^v1,/', 'v2,', $v['signature_header'])]] + self::headersFor($v)],
+        ];
+        foreach ($cases as $name => [$body, $headers]) {
+            try {
+                Webhook::constructEvent($body, $headers, $v['secret'], 300, $now);
+                self::fail("{$name}: must not verify");
+            } catch (SignatureVerificationException $e) {
+                self::assertSame('webhook signature mismatch', $e->getMessage());
+            }
         }
     }
 
     public function testHeaderLookupIsCaseInsensitive(): void
     {
-        $v = self::vectors()[0];
-        $headers = array_change_key_case(self::headersFor($v), CASE_UPPER);
-        $event = Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
-        self::assertSame($v['delivery_id'], $event->deliveryId);
+        $v = self::vector('bank.credit');
+        $event = Webhook::constructEvent($v['body'], array_change_key_case(self::headersFor($v), CASE_UPPER), $v['secret'], 300, (int) $v['timestamp']);
+        self::assertSame($v['msg_id'], $event->webhookId);
     }
 
-    public function testScalarHeaderValuesAccepted(): void
+    public function testEmptySecretAndNonEnvelopeBodyFail(): void
     {
-        $v = self::vectors()[0];
-        $headers = array_map(static fn (array $vals): string => $vals[0], self::headersFor($v));
-        $event = Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
-        self::assertSame($v['delivery_id'], $event->deliveryId);
-    }
-
-    public function testEventTypeFallsBackToBodyWhenHeaderMissing(): void
-    {
-        $v = self::vectors()[0];
-        $headers = self::headersFor($v);
-        unset($headers['X-Webhook-Event']);
-        $event = Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
-        self::assertSame('bank.credit', $event->type);
-    }
-
-    public function testEventTypeFromSignedBodyWinsOverHeader(): void
-    {
-        $v = self::vectors()[0];
-        $headers = self::headersFor($v);
-        $headers['X-Webhook-Event'] = ['org.created'];
-        $event = Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
-        self::assertSame('bank.credit', $event->type);
-    }
-
-    public function testEmptySecretRejected(): void
-    {
-        $v = self::vectors()[0];
+        $v = self::vector('bank.credit');
         $this->expectException(SignatureVerificationException::class);
         Webhook::constructEvent($v['body'], self::headersFor($v), '', 300, (int) $v['timestamp']);
     }
 
-    public function testTimestampExactlyAtToleranceAccepted(): void
+    public function testReferenceBodyIsNotAnEnvelope(): void
     {
-        $v = self::vectors()[0];
-        $event = Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp'] + 300);
-        self::assertSame($v['delivery_id'], $event->deliveryId);
-    }
-
-    public function testTamperedBodyRejected(): void
-    {
-        $v = self::vectors()[0];
-        $this->expectException(SignatureVerificationException::class);
-        Webhook::constructEvent($v['body'] . ' ', self::headersFor($v), $v['secret'], 300, (int) $v['timestamp']);
-    }
-
-    public function testWrongSecretRejected(): void
-    {
-        $v = self::vectors()[0];
-        $this->expectException(SignatureVerificationException::class);
-        Webhook::constructEvent($v['body'], self::headersFor($v), 'whsec_wrong', 300, (int) $v['timestamp']);
-    }
-
-    public function testStaleTimestampRejected(): void
-    {
-        $v = self::vectors()[0];
-        $this->expectException(SignatureVerificationException::class);
-        Webhook::constructEvent($v['body'], self::headersFor($v), $v['secret'], 300, (int) $v['timestamp'] + 301);
-    }
-
-    public function testMissingSignatureHeaderRejected(): void
-    {
-        $v = self::vectors()[0];
-        $headers = self::headersFor($v);
-        unset($headers['X-Webhook-Signature']);
-        $this->expectException(SignatureVerificationException::class);
-        Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
-    }
-
-    public function testMalformedSignaturePrefixRejected(): void
-    {
-        $v = self::vectors()[0];
-        $headers = self::headersFor($v);
-        $headers['X-Webhook-Signature'] = [substr($v['signature_header'], 7)]; // strip "sha256="
-        $this->expectException(SignatureVerificationException::class);
-        Webhook::constructEvent($v['body'], $headers, $v['secret'], 300, (int) $v['timestamp']);
-    }
-
-    public function testUnsignedEventHeaderIsNeverTrusted(): void
-    {
-        // The event type lives in the signed body; a delivery whose body has
-        // no event must be refused rather than take the header's word for it.
-        $secret = 'whsec_test';
-        $deliveryId = 'd-1';
-        $timestamp = (string) time();
-        $body = '{"data":{"amount":1000}}';
-        $signature = 'sha256=' . hash_hmac('sha256', $deliveryId . '.' . $timestamp . '.' . $body, $secret);
-
-        $this->expectException(SignatureVerificationException::class);
-        $this->expectExceptionMessage('signed payload has no event type');
-        Webhook::constructEvent($body, [
-            'X-Webhook-Event' => ['bank.credit'],
-            'X-Webhook-Delivery-Id' => [$deliveryId],
-            'X-Webhook-Timestamp' => [$timestamp],
-            'X-Webhook-Signature' => [$signature],
-        ], $secret);
+        $ref = self::file()['standard_webhooks_reference'];
+        $this->expectExceptionMessage('signed payload is not a webhook envelope');
+        Webhook::constructEvent($ref['body'], self::headersFor($ref), $ref['secret'], 300, (int) $ref['timestamp']);
     }
 }

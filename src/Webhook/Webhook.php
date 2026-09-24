@@ -7,60 +7,102 @@ namespace BankApi\Webhook;
 use BankApi\Exception\SignatureVerificationException;
 
 /**
- * Verifies BankAPI webhook signatures: HMAC-SHA256 hex over
- * "<delivery_id>.<timestamp>.<raw body>", carried as "sha256=<hex>" in
- * X-Webhook-Signature. Signature is checked before the timestamp tolerance.
+ * Verifies BankAPI webhooks per Standard Webhooks: any v1 entry of
+ * webhook-signature must equal base64(HMAC-SHA256(key,
+ * "{webhook-id}.{webhook-timestamp}.{raw body}")), key being the decoded
+ * base64 after whsec_. The signature is checked before the timestamp.
  */
 final class Webhook
 {
-    private const SIGNATURE_PREFIX = 'sha256=';
+    private const SECRET_PREFIX = 'whsec_';
 
-    /**
-     * @param array<string, string|list<string>> $headers case-insensitive lookup
-     * @param int                                $tolerance max |now - timestamp| in seconds (replay guard)
-     * @param int|null                           $now overrides time() for tests
-     */
+    /** @param array<string, string|list<string>> $headers case-insensitive */
     public static function constructEvent(string $payload, array $headers, #[\SensitiveParameter] string $secret, int $tolerance = 300, ?int $now = null): Event
     {
-        if ($secret === '') {
-            throw new SignatureVerificationException('webhook secret must not be empty');
+        [$webhookId, $timestamp] = self::verify($payload, $headers, $secret, $tolerance, $now);
+
+        // Integers stay ints: json_decode keeps 64-bit values exact on 64-bit PHP.
+        $e = json_decode($payload, true);
+        if (!is_array($e)
+            || !is_string($e['id'] ?? null) || !is_string($e['type'] ?? null) || $e['type'] === ''
+            || !is_string($e['api_version'] ?? null) || !is_string($e['created_at'] ?? null)
+            || !is_string($e['org_id'] ?? null) || !is_array($e['data'] ?? null)) {
+            throw new SignatureVerificationException('signed payload is not a webhook envelope');
         }
+
+        /** @var array{id: string, type: string, flow_id: string}|null $trigger set on flow.output only */
+        $trigger = is_array($e['trigger'] ?? null) ? $e['trigger'] : null;
+
+        return new Event(
+            $e['id'],
+            $e['type'],
+            $e['api_version'],
+            $e['created_at'],
+            $e['org_id'],
+            $e['data'],
+            $trigger,
+            $webhookId,
+            $timestamp,
+        );
+    }
+
+    /**
+     * @param array<string, string|list<string>> $headers
+     *
+     * @return array{0: string, 1: int} webhook-id and webhook-timestamp
+     */
+    public static function verify(string $payload, array $headers, #[\SensitiveParameter] string $secret, int $tolerance = 300, ?int $now = null): array
+    {
+        $key = self::decodeSecret($secret);
 
         $h = [];
         foreach ($headers as $name => $value) {
             $h[strtolower((string) $name)] = is_array($value) ? (string) ($value[0] ?? '') : (string) $value;
         }
+        $webhookId = self::required($h, 'webhook-id');
+        $timestampRaw = self::required($h, 'webhook-timestamp');
+        $signatureHeader = self::required($h, 'webhook-signature');
 
-        $deliveryId = self::required($h, 'x-webhook-delivery-id');
-        $timestampRaw = self::required($h, 'x-webhook-timestamp');
-        $signatureHeader = self::required($h, 'x-webhook-signature');
-
-        if (!str_starts_with($signatureHeader, self::SIGNATURE_PREFIX)) {
-            throw new SignatureVerificationException('X-Webhook-Signature is not in "sha256=<hex>" form');
+        $expected = base64_encode(hash_hmac('sha256', $webhookId . '.' . $timestampRaw . '.' . $payload, $key, true));
+        $matched = false;
+        foreach (explode(' ', $signatureHeader) as $entry) {
+            [$version, $signature] = array_pad(explode(',', $entry, 2), 2, '');
+            if ($version === 'v1' && hash_equals($expected, $signature)) {
+                $matched = true;
+                break;
+            }
         }
-
-        $expected = hash_hmac('sha256', $deliveryId . '.' . $timestampRaw . '.' . $payload, $secret);
-        if (!hash_equals($expected, substr($signatureHeader, strlen(self::SIGNATURE_PREFIX)))) {
+        if (!$matched) {
             throw new SignatureVerificationException('webhook signature mismatch');
         }
 
+        if (preg_match('/^\d+$/', $timestampRaw) !== 1) {
+            throw new SignatureVerificationException('webhook-timestamp is not Unix seconds');
+        }
         $timestamp = (int) $timestampRaw;
         $now ??= time();
         if (abs($now - $timestamp) > $tolerance) {
             throw new SignatureVerificationException('webhook timestamp outside tolerance');
         }
 
-        $decoded = json_decode($payload, true);
-        $decoded = is_array($decoded) ? $decoded : [];
-        $data = is_array($decoded['data'] ?? null) ? $decoded['data'] : [];
-        // The event type comes from the SIGNED body only. X-Webhook-Event is
-        // outside the signed string, so honouring it would let a replayed
-        // delivery be re-labelled and routed down the wrong branch.
-        if (!is_string($decoded['event'] ?? null) || $decoded['event'] === '') {
-            throw new SignatureVerificationException('signed payload has no event type');
+        return [$webhookId, $timestamp];
+    }
+
+    /**
+     * The HMAC key of a whsec_ secret. Both base64 alphabets are accepted,
+     * padded or not: secrets minted before envelope v1 are base64url.
+     */
+    public static function decodeSecret(#[\SensitiveParameter] string $secret): string
+    {
+        $encoded = str_starts_with($secret, self::SECRET_PREFIX) ? substr($secret, strlen(self::SECRET_PREFIX)) : $secret;
+        $standard = strtr($encoded, '-_', '+/');
+        $standard = str_pad($standard, (int) (ceil(strlen($standard) / 4) * 4), '=');
+        $key = base64_decode($standard, true);
+        if ($encoded === '' || $key === false || $key === '') {
+            throw new SignatureVerificationException('webhook secret must be whsec_<base64>');
         }
 
-        return new Event($decoded['event'], $deliveryId, $timestamp, $data);
+        return $key;
     }
 
     /** @param array<string, string> $h */

@@ -159,11 +159,13 @@ try {
 
 ## Webhook verification
 
-Verify the signature on every incoming webhook request before trusting its
-payload, then respond `2xx` quickly (BankAPI retries on `408`/`429`/`5xx`):
+BankAPI signs webhooks on [Standard Webhooks](https://www.standardwebhooks.com/).
+Verify every delivery before trusting its payload, then respond `2xx`
+quickly (BankAPI retries on `408`/`429`/`5xx`):
 
 ```php
 use BankApi\Exception\SignatureVerificationException;
+use BankApi\Webhook\EventType;
 use BankApi\Webhook\Webhook;
 
 $payload = file_get_contents('php://input');
@@ -179,28 +181,44 @@ try {
     exit;
 }
 
-// Dedupe retried deliveries using $event->deliveryId (e.g. a unique
+// Dedupe retried deliveries using $event->webhookId (e.g. a unique
 // constraint or a seen-ids cache) before acting on the event.
-if (! already_processed($event->deliveryId)) {
-    handle($event->type, $event->data);
-    mark_processed($event->deliveryId);
+if (! already_processed($event->webhookId)) {
+    if ($event->type === EventType::BANK_CREDIT) {
+        handle($event->data);
+    }
+    mark_processed($event->webhookId);
 }
 
 http_response_code(200);
 ```
 
-`Webhook::constructEvent()` verifies an HMAC-SHA256 hex signature computed
-over `"<delivery_id>.<timestamp>.<raw body>"`, carried as
-`X-Webhook-Signature: sha256=<hex>` alongside `X-Webhook-Event`,
-`X-Webhook-Delivery-Id`, and `X-Webhook-Timestamp` (Unix seconds). It also
-rejects deliveries whose timestamp is older than `$tolerance` seconds
-(default 300) to guard against replay. Always pass the **raw, unparsed**
+`Webhook::constructEvent()` verifies that any `v1,<base64>` entry of the
+`webhook-signature` header equals `base64(HMAC-SHA256(key,
+"<webhook-id>.<webhook-timestamp>.<raw body>"))`, alongside the `webhook-id`
+and `webhook-timestamp` (Unix seconds) headers. It also rejects deliveries
+whose timestamp is more than `$tolerance` seconds (default 300) from now in
+either direction, to guard against replay. Always pass the **raw, unparsed**
 request body — re-encoding JSON before verifying will break the signature
 check.
 
-The webhook secret (`whsec_...`) is shown **once**, in the response of
+A signing secret can be rotated: `webhook-signature` may carry more than one
+`v1,<base64>` entry, and verification succeeds if any one matches.
+
+An event type this SDK version does not know yet (the server added one
+after this SDK was generated) still parses — `$event->isKnown()` returns
+`false` instead of the call throwing. Check `EventType::ALL` /
+`$event->isKnown()` before branching on `$event->type`, and treat
+`$event->data` as an untyped array for anything unrecognized.
+
+`flow.output` events carry the flow run's trigger event in `$event->trigger`
+(`null` for every other type).
+
+The webhook secret (`whsec_<base64>`) is shown **once**, in the response of
 `webhookEndpoints()->create(...)` — store it immediately, it cannot be
-retrieved again later.
+retrieved again later. A secret minted before this SDK version may be
+URL-safe base64, padded or not — `Webhook::decodeSecret()` accepts both
+alphabets, so an old secret keeps verifying unchanged.
 
 ## Errors
 

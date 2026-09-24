@@ -100,7 +100,7 @@ final class OpenApiContractTest extends TestCase
             }
         }
 
-        self::assertCount(6, $idempotentOps, 'expected exactly 6 x-idempotent operations');
+        self::assertCount(9, $idempotentOps, 'expected exactly 9 x-idempotent operations');
 
         foreach ($idempotentOps as [$path, $method, $op]) {
             $hasHeader = false;

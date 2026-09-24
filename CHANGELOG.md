@@ -4,6 +4,41 @@ All notable changes to `codetay/bankapi-php` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-09-24
+
+BankAPI now signs webhooks on [Standard Webhooks](https://www.standardwebhooks.com/)
+instead of the previous ad hoc `X-Webhook-*` scheme. **Migrating from 1.0:**
+read the webhook secret from `webhook-id`/`webhook-timestamp`/`webhook-signature`
+headers (not `X-Webhook-Delivery-Id`/`X-Webhook-Timestamp`/`X-Webhook-Signature`);
+`Event::$deliveryId` is now `Event::$webhookId`, and `Event::$type`/`$data`
+now come from a parsed `{id, type, api_version, created_at, org_id, data}`
+envelope instead of `{event, data}`. If you dispatched on `$event->type` with
+a bare string, switch to the new `EventType::*` constants.
+
+### Breaking
+
+- `Webhook::constructEvent()` now verifies the Standard Webhooks scheme: any
+  `v1,<base64>` entry of the `webhook-signature` header must equal
+  `base64(HMAC-SHA256(key, "<webhook-id>.<webhook-timestamp>.<raw body>"))`,
+  read from the `webhook-id`/`webhook-timestamp`/`webhook-signature` headers.
+  The previous `X-Webhook-Signature: sha256=<hex>` / `X-Webhook-Delivery-Id` /
+  `X-Webhook-Timestamp` scheme is no longer accepted.
+- `Event` is rewritten: `$deliveryId` is renamed to `$webhookId`; `$type` and
+  `$data` now come from parsing the signed body as a v1 envelope
+  (`{id, type, api_version, created_at, org_id, data}`, `flow.output` also
+  carrying `trigger`) instead of the previous `{event, data}` shape. `Event`
+  gained `$id`, `$apiVersion`, `$createdAt`, `$orgId`, `$trigger`, and
+  `isKnown()`.
+- Added `Webhook::verify()` (returns `[webhookId, timestamp]` without parsing
+  the body) and `Webhook::decodeSecret()` (the raw HMAC key of a
+  `whsec_<base64>` secret, accepting both the standard and URL-safe base64
+  alphabets, padded or not, so a secret minted before this release keeps
+  verifying unchanged).
+- Added the generated `EventType` class (`EventType::BANK_CREDIT`, …,
+  `EventType::ALL`) listing every event type of the pinned GO-KIT contract.
+  A type this SDK version does not know yet still parses; `$event->isKnown()`
+  is `false` for it instead of the call throwing.
+
 ## [1.0.0] - 2026-09-04
 
 The SDK now targets the frozen GO-KIT API contract (pinned by
