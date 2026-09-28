@@ -4,7 +4,7 @@ All notable changes to `codetay/bankapi-php` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## [2.0.0] - 2026-09-24
+## [2.0.0] - 2026-09-28
 
 BankAPI now signs webhooks on [Standard Webhooks](https://www.standardwebhooks.com/)
 instead of the previous ad hoc `X-Webhook-*` scheme. **Migrating from 1.0:**
@@ -38,6 +38,12 @@ a bare string, switch to the new `EventType::*` constants.
   `EventType::ALL`) listing every event type of the pinned GO-KIT contract.
   A type this SDK version does not know yet still parses; `$event->isKnown()`
   is `false` for it instead of the call throwing.
+
+### Added
+
+- `EventType::WEBHOOK_TEST` (`webhook.test`), sent by the dashboard's "send
+  test" action. Acknowledge it like any other event.
+- `ErrorCode` now covers every coded 4xx the API returns (182 codes).
 
 ## [1.0.0] - 2026-09-04
 

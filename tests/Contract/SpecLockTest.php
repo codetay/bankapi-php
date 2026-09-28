@@ -51,6 +51,6 @@ final class SpecLockTest extends TestCase
         $spec = self::spec();
         self::assertSame('BankAPI', $spec['info']['title']);
         self::assertStringEndsWith('/v1', $spec['servers'][0]['url']);
-        self::assertCount(105, $spec['x-error-code-registry']);
+        self::assertCount(182, $spec['x-error-code-registry']);
     }
 }

@@ -8,20 +8,39 @@ namespace BankApi;
 // Do not edit by hand — run `composer gen:error-codes` to refresh.
 final class ErrorCode
 {
+    public const ACCESS_ADMIN_REQUIRED = 'access.admin_required';
+    public const ACCESS_ADMIN_TWOFA_REQUIRED = 'access.admin_twofa_required';
+    public const ACCESS_API_KEY_NOT_ALLOWED = 'access.api_key_not_allowed';
+    public const ACCESS_FORBIDDEN = 'access.forbidden';
+    public const ACCESS_OPERATOR_REQUIRED = 'access.operator_required';
+    public const ACCESS_ORG_HOST_REQUIRED = 'access.org_host_required';
+    public const ACCESS_ORG_SUSPENDED = 'access.org_suspended';
+    public const ACCESS_TENANT_MISMATCH = 'access.tenant_mismatch';
+    public const ADMIN_FEATURE_KEY_INVALID = 'admin.feature_key_invalid';
+    public const ADMIN_ORG_DELETING = 'admin.org_deleting';
+    public const ADMIN_ORG_INPUT_INVALID = 'admin.org_input_invalid';
     public const ADMIN_ORG_PROVISIONING = 'admin.org_provisioning';
     public const ADMIN_ROLE_ESCALATION = 'admin.role_escalation';
     public const ADMIN_ROLE_IN_USE = 'admin.role_in_use';
     public const ADMIN_ROLE_NAME_TAKEN = 'admin.role_name_taken';
     public const ADMIN_ROLE_NOT_FOUND = 'admin.role_not_found';
     public const ADMIN_ROLE_SYSTEM = 'admin.role_system';
+    public const ADMIN_SELF_SUPER_ADMIN_REVOKE = 'admin.self_super_admin_revoke';
+    public const ADMIN_TOTP_INVALID = 'admin.totp_invalid';
+    public const ADMIN_USER_DELETING = 'admin.user_deleting';
     public const ADMIN_USER_IS_ADMIN = 'admin.user_is_admin';
     public const ADMIN_USER_IS_SUPER_ADMIN = 'admin.user_is_super_admin';
     public const ADMIN_USER_NOT_FOUND = 'admin.user_not_found';
     public const ADMIN_USER_SELF_SUSPEND = 'admin.user_self_suspend';
+    public const APIKEY_INPUT_INVALID = 'apikey.input_invalid';
     public const AUTH_ACCOUNT_OWNS_ORG = 'auth.account_owns_org';
+    public const AUTH_AUTHENTICATION_REQUIRED = 'auth.authentication_required';
+    public const AUTH_CURRENT_PASSWORD_INCORRECT = 'auth.current_password_incorrect';
     public const AUTH_EMAIL_NOT_VERIFIED = 'auth.email_not_verified';
     public const AUTH_FLOWS_DISABLED = 'auth.flows_disabled';
     public const AUTH_INVALID_CREDENTIALS = 'auth.invalid_credentials';
+    public const AUTH_PRINCIPAL_INVALID = 'auth.principal_invalid';
+    public const AUTH_REAUTH_REQUIRED = 'auth.reauth_required';
     public const AUTH_REAUTH_UNAVAILABLE = 'auth.reauth_unavailable';
     public const AUTH_REFRESH_IN_FLIGHT = 'auth.refresh_in_flight';
     public const AUTH_REFRESH_INVALID = 'auth.refresh_invalid';
@@ -36,8 +55,15 @@ final class ErrorCode
     public const AUTH_TWOFA_UNAVAILABLE = 'auth.twofa_unavailable';
     public const AUTH_VERIFICATION_TOKEN_INVALID = 'auth.verification_token_invalid';
     public const AUTH_VERIFICATION_UNAVAILABLE = 'auth.verification_unavailable';
+    public const AUTHZ_PERMISSION_ESCALATION = 'authz.permission_escalation';
+    public const AUTHZ_ROLE_IN_USE = 'authz.role_in_use';
+    public const AUTHZ_ROLE_INVALID = 'authz.role_invalid';
+    public const AUTHZ_ROLE_NAME_TAKEN = 'authz.role_name_taken';
+    public const AUTHZ_ROLE_NOT_EDITABLE = 'authz.role_not_editable';
+    public const BANK_REVOCATION_NOT_IN_REVIEW = 'bank.revocation_not_in_review';
     public const BANKING_ACCOUNT_ALREADY_LINKED = 'banking.account_already_linked';
     public const BANKING_BANK_UNSUPPORTED = 'banking.bank_unsupported';
+    public const BANKING_CONNECTION_NOT_FOUND = 'banking.connection_not_found';
     public const BANKING_CONNECTION_NOT_PURGEABLE = 'banking.connection_not_purgeable';
     public const BANKING_CONSENT_REQUIRED = 'banking.consent_required';
     public const BANKING_INTENT_CODE_DUPLICATE = 'banking.intent_code_duplicate';
@@ -45,28 +71,40 @@ final class ErrorCode
     public const BANKING_MATCH_INVALID = 'banking.match_invalid';
     public const BANKING_MCC_REJECTED = 'banking.mcc_rejected';
     public const BANKING_OAUTH_STATE_INVALID = 'banking.oauth_state_invalid';
+    public const BANKING_OFFER_WINDOW_INVALID = 'banking.offer_window_invalid';
     public const BANKING_OTP_EXPIRED = 'banking.otp_expired';
     public const BANKING_OTP_INVALID = 'banking.otp_invalid';
     public const BANKING_OTP_LOCKED = 'banking.otp_locked';
+    public const BANKING_OTP_PAYLOAD_INVALID = 'banking.otp_payload_invalid';
     public const BANKING_OTP_PROVIDER_UNAVAILABLE = 'banking.otp_provider_unavailable';
     public const BANKING_OTP_STATE_CONFLICT = 'banking.otp_state_conflict';
     public const BANKING_PENDING_CONNECTION_EXISTS = 'banking.pending_connection_exists';
     public const BANKING_RECIPIENT_LOOKUP_FAILED = 'banking.recipient_lookup_failed';
     public const BANKING_VA_RESERVATION_CONFLICT = 'banking.va_reservation_conflict';
     public const BANKING_VA_SUB_ID_TAKEN = 'banking.va_sub_id_taken';
+    public const BRANDING_FIELD_INVALID = 'branding.field_invalid';
+    public const BRANDING_LOGO_INVALID = 'branding.logo_invalid';
     public const BRANDING_SMTP_INVALID = 'branding.smtp_invalid';
     public const BRANDING_SMTP_NOT_CONFIGURED = 'branding.smtp_not_configured';
     public const BRANDING_SMTP_TEST_FAILED = 'branding.smtp_test_failed';
     public const BRANDING_SMTP_UNAVAILABLE = 'branding.smtp_unavailable';
     public const BRANDING_SMTP_UNREACHABLE = 'branding.smtp_unreachable';
     public const BRANDING_WHITELABEL_DISABLED = 'branding.whitelabel_disabled';
+    public const CONNECTOR_CONFIG_INVALID = 'connector.config_invalid';
+    public const CONNECTOR_TEST_FAILED = 'connector.test_failed';
+    public const CREDIT_AMOUNT_INVALID = 'credit.amount_invalid';
     public const CREDIT_CHECKOUT_CONFLICT = 'credit.checkout_conflict';
     public const CREDIT_IDEMPOTENCY_CONFLICT = 'credit.idempotency_conflict';
     public const CREDIT_INSUFFICIENT_CREDIT = 'credit.insufficient_credit';
+    public const CUSTOMDOMAIN_CLAIMED = 'customdomain.claimed';
+    public const CUSTOMDOMAIN_INVALID = 'customdomain.invalid';
     public const CUSTOMER_LIMIT_REACHED = 'customer.limit_reached';
     public const CUSTOMER_NOT_FOUND = 'customer.not_found';
     public const CUSTOMER_NOT_PROVISIONING = 'customer.not_provisioning';
     public const CUSTOMER_RESELLER_REQUIRED = 'customer.reseller_required';
+    public const DELETION_API_KEY_FORBIDDEN = 'deletion.api_key_forbidden';
+    public const DELETION_IN_PROGRESS = 'deletion.in_progress';
+    public const DELETION_NOT_STUCK = 'deletion.not_stuck';
     public const FLOW_APPROVAL_FLOW_INACTIVE = 'flow.approval_flow_inactive';
     public const FLOW_APPROVAL_NOT_WAITING = 'flow.approval_not_waiting';
     public const FLOW_CONDITION_INVALID = 'flow.condition_invalid';
@@ -79,14 +117,26 @@ final class ErrorCode
     public const IDEMPOTENCY_KEY_INVALID = 'idempotency.key_invalid';
     public const IDEMPOTENCY_KEY_REUSED = 'idempotency.key_reused';
     public const IDEMPOTENCY_REPLAY_UNAVAILABLE = 'idempotency.replay_unavailable';
+    public const NOTIFICATIONS_EVENT_UNKNOWN = 'notifications.event_unknown';
+    public const OAUTH_EXCHANGE_CODE_INVALID = 'oauth.exchange_code_invalid';
+    public const OAUTH_LOGIN_FAILED = 'oauth.login_failed';
+    public const ORG_ALREADY_MEMBER = 'org.already_member';
     public const ORG_CHILD_RESTRICTED = 'org.child_restricted';
-    public const ORG_HAS_ACTIVE_BANK_CONSENT = 'org.has_active_bank_consent';
-    public const ORG_HAS_BANK_TRANSACTIONS = 'org.has_bank_transactions';
-    public const ORG_HAS_CREDIT_LEDGER = 'org.has_credit_ledger';
+    public const ORG_CREATION_LIMIT = 'org.creation_limit';
     public const ORG_HAS_CUSTOMERS = 'org.has_customers';
+    public const ORG_INVITATION_NOT_PENDING = 'org.invitation_not_pending';
     public const ORG_MEMBER_LAST_OWNER = 'org.member_last_owner';
+    public const ORG_NAME_INVALID = 'org.name_invalid';
+    public const ORG_OWNER_INACTIVE = 'org.owner_inactive';
+    public const ORG_OWNER_REQUIRED = 'org.owner_required';
+    public const ORG_SLUG_INVALID = 'org.slug_invalid';
+    public const ORG_SLUG_RESERVED = 'org.slug_reserved';
+    public const ORG_SLUG_TAKEN = 'org.slug_taken';
+    public const ORG_TRANSFER_TARGET_INVALID = 'org.transfer_target_invalid';
     public const PAYMENT_GATEWAY_UNAVAILABLE = 'payment.gateway_unavailable';
+    public const PAYMENT_INPUT_INVALID = 'payment.input_invalid';
     public const PAYMENT_STATE_INVALID = 'payment.state_invalid';
+    public const PAYMENT_UNAPPLIED_RESOLVED = 'payment.unapplied_resolved';
     public const PAYMENT_METHOD_CONNECTION_INVALID = 'payment_method.connection_invalid';
     public const PAYMENT_METHOD_DUPLICATE_PROVIDER = 'payment_method.duplicate_provider';
     public const PAYMENT_METHOD_ENCRYPTION_UNAVAILABLE = 'payment_method.encryption_unavailable';
@@ -96,40 +146,86 @@ final class ErrorCode
     public const PAYMENT_METHOD_PROVIDER_MISCONFIGURED = 'payment_method.provider_misconfigured';
     public const PAYMENT_METHOD_PROVIDER_NOT_ALLOWED = 'payment_method.provider_not_allowed';
     public const PAYMENT_METHOD_RESELLER_REQUIRED = 'payment_method.reseller_required';
+    public const PLAN_DEFINITION_INVALID = 'plan.definition_invalid';
+    public const PLAN_NAME_TAKEN = 'plan.name_taken';
     public const PLAN_NOT_RESELLABLE = 'plan.not_resellable';
     public const PLAN_RESELLER_REQUIRED = 'plan.reseller_required';
+    public const QUOTA_EXCEEDED = 'quota.exceeded';
+    public const REQUEST_BODY_TOO_LARGE = 'request.body_too_large';
+    public const REQUEST_BODY_UNREADABLE = 'request.body_unreadable';
+    public const REQUEST_CONCURRENT_CHANGE = 'request.concurrent_change';
+    public const REQUEST_INVALID_ID = 'request.invalid_id';
+    public const REQUEST_INVALID_QUERY = 'request.invalid_query';
+    public const REQUEST_RATE_LIMITED = 'request.rate_limited';
+    public const REQUEST_TOO_MANY_ATTEMPTS = 'request.too_many_attempts';
+    public const REQUEST_UNSUPPORTED_MEDIA_TYPE = 'request.unsupported_media_type';
+    public const RESOURCE_NOT_FOUND = 'resource.not_found';
     public const STOREFRONT_BUY_THROTTLED = 'storefront.buy_throttled';
     public const STOREFRONT_IDEMPOTENCY_CONFLICT = 'storefront.idempotency_conflict';
     public const STOREFRONT_INSUFFICIENT_CREDIT = 'storefront.insufficient_credit';
+    public const STOREFRONT_MARKETPLACE_DISABLED = 'storefront.marketplace_disabled';
     public const STOREFRONT_OUT_OF_STOCK = 'storefront.out_of_stock';
     public const STOREFRONT_PAYLOAD_GONE = 'storefront.payload_gone';
+    public const STOREFRONT_PAYLOAD_INVALID = 'storefront.payload_invalid';
     public const STOREFRONT_PRICE_TOO_LARGE = 'storefront.price_too_large';
     public const STOREFRONT_PURCHASE_REJECTED = 'storefront.purchase_rejected';
     public const STOREFRONT_SELF_PURCHASE = 'storefront.self_purchase';
+    public const STOREFRONT_SELLER_NOT_FOUND = 'storefront.seller_not_found';
     public const STOREFRONT_UNAVAILABLE = 'storefront.unavailable';
+    public const SUBSCRIPTION_ALREADY_SUBSCRIBED = 'subscription.already_subscribed';
     public const SUBSCRIPTION_CHANGE_VIA_RESELLER = 'subscription.change_via_reseller';
     public const SUBSCRIPTION_INSUFFICIENT_CREDIT = 'subscription.insufficient_credit';
+    public const SUBSCRIPTION_METHOD_NOT_ALLOWED = 'subscription.method_not_allowed';
     public const SUBSCRIPTION_NOT_CONFIRMABLE = 'subscription.not_confirmable';
+    public const SUBSCRIPTION_NOT_FOUND = 'subscription.not_found';
     public const SUBSCRIPTION_NOT_PAYABLE = 'subscription.not_payable';
     public const SUBSCRIPTION_PAYMENT_START_FAILED = 'subscription.payment_start_failed';
+    public const SUBSCRIPTION_PLAN_NOT_PURCHASABLE = 'subscription.plan_not_purchasable';
     public const SUBSCRIPTION_PROVIDER_UNAVAILABLE = 'subscription.provider_unavailable';
+    public const TWOFA_ALREADY_ENABLED = 'twofa.already_enabled';
+    public const TWOFA_CODE_INVALID = 'twofa.code_invalid';
+    public const TWOFA_NOT_ENABLED = 'twofa.not_enabled';
+    public const WEBHOOK_DELIVERY_EXPIRED = 'webhook.delivery_expired';
+    public const WEBHOOK_DELIVERY_IN_PROGRESS = 'webhook.delivery_in_progress';
+    public const WEBHOOK_DELIVERY_NOT_FOUND = 'webhook.delivery_not_found';
+    public const WEBHOOK_ENDPOINT_INACTIVE = 'webhook.endpoint_inactive';
+    public const WEBHOOK_URL_INVALID = 'webhook.url_invalid';
 
     /** @var list<string> */
     public const ALL = [
+        'access.admin_required',
+        'access.admin_twofa_required',
+        'access.api_key_not_allowed',
+        'access.forbidden',
+        'access.operator_required',
+        'access.org_host_required',
+        'access.org_suspended',
+        'access.tenant_mismatch',
+        'admin.feature_key_invalid',
+        'admin.org_deleting',
+        'admin.org_input_invalid',
         'admin.org_provisioning',
         'admin.role_escalation',
         'admin.role_in_use',
         'admin.role_name_taken',
         'admin.role_not_found',
         'admin.role_system',
+        'admin.self_super_admin_revoke',
+        'admin.totp_invalid',
+        'admin.user_deleting',
         'admin.user_is_admin',
         'admin.user_is_super_admin',
         'admin.user_not_found',
         'admin.user_self_suspend',
+        'apikey.input_invalid',
         'auth.account_owns_org',
+        'auth.authentication_required',
+        'auth.current_password_incorrect',
         'auth.email_not_verified',
         'auth.flows_disabled',
         'auth.invalid_credentials',
+        'auth.principal_invalid',
+        'auth.reauth_required',
         'auth.reauth_unavailable',
         'auth.refresh_in_flight',
         'auth.refresh_invalid',
@@ -144,8 +240,15 @@ final class ErrorCode
         'auth.twofa_unavailable',
         'auth.verification_token_invalid',
         'auth.verification_unavailable',
+        'authz.permission_escalation',
+        'authz.role_in_use',
+        'authz.role_invalid',
+        'authz.role_name_taken',
+        'authz.role_not_editable',
+        'bank.revocation_not_in_review',
         'banking.account_already_linked',
         'banking.bank_unsupported',
+        'banking.connection_not_found',
         'banking.connection_not_purgeable',
         'banking.consent_required',
         'banking.intent_code_duplicate',
@@ -153,28 +256,40 @@ final class ErrorCode
         'banking.match_invalid',
         'banking.mcc_rejected',
         'banking.oauth_state_invalid',
+        'banking.offer_window_invalid',
         'banking.otp_expired',
         'banking.otp_invalid',
         'banking.otp_locked',
+        'banking.otp_payload_invalid',
         'banking.otp_provider_unavailable',
         'banking.otp_state_conflict',
         'banking.pending_connection_exists',
         'banking.recipient_lookup_failed',
         'banking.va_reservation_conflict',
         'banking.va_sub_id_taken',
+        'branding.field_invalid',
+        'branding.logo_invalid',
         'branding.smtp_invalid',
         'branding.smtp_not_configured',
         'branding.smtp_test_failed',
         'branding.smtp_unavailable',
         'branding.smtp_unreachable',
         'branding.whitelabel_disabled',
+        'connector.config_invalid',
+        'connector.test_failed',
+        'credit.amount_invalid',
         'credit.checkout_conflict',
         'credit.idempotency_conflict',
         'credit.insufficient_credit',
+        'customdomain.claimed',
+        'customdomain.invalid',
         'customer.limit_reached',
         'customer.not_found',
         'customer.not_provisioning',
         'customer.reseller_required',
+        'deletion.api_key_forbidden',
+        'deletion.in_progress',
+        'deletion.not_stuck',
         'flow.approval_flow_inactive',
         'flow.approval_not_waiting',
         'flow.condition_invalid',
@@ -187,14 +302,26 @@ final class ErrorCode
         'idempotency.key_invalid',
         'idempotency.key_reused',
         'idempotency.replay_unavailable',
+        'notifications.event_unknown',
+        'oauth.exchange_code_invalid',
+        'oauth.login_failed',
+        'org.already_member',
         'org.child_restricted',
-        'org.has_active_bank_consent',
-        'org.has_bank_transactions',
-        'org.has_credit_ledger',
+        'org.creation_limit',
         'org.has_customers',
+        'org.invitation_not_pending',
         'org.member_last_owner',
+        'org.name_invalid',
+        'org.owner_inactive',
+        'org.owner_required',
+        'org.slug_invalid',
+        'org.slug_reserved',
+        'org.slug_taken',
+        'org.transfer_target_invalid',
         'payment.gateway_unavailable',
+        'payment.input_invalid',
         'payment.state_invalid',
+        'payment.unapplied_resolved',
         'payment_method.connection_invalid',
         'payment_method.duplicate_provider',
         'payment_method.encryption_unavailable',
@@ -204,23 +331,50 @@ final class ErrorCode
         'payment_method.provider_misconfigured',
         'payment_method.provider_not_allowed',
         'payment_method.reseller_required',
+        'plan.definition_invalid',
+        'plan.name_taken',
         'plan.not_resellable',
         'plan.reseller_required',
+        'quota.exceeded',
+        'request.body_too_large',
+        'request.body_unreadable',
+        'request.concurrent_change',
+        'request.invalid_id',
+        'request.invalid_query',
+        'request.rate_limited',
+        'request.too_many_attempts',
+        'request.unsupported_media_type',
+        'resource.not_found',
         'storefront.buy_throttled',
         'storefront.idempotency_conflict',
         'storefront.insufficient_credit',
+        'storefront.marketplace_disabled',
         'storefront.out_of_stock',
         'storefront.payload_gone',
+        'storefront.payload_invalid',
         'storefront.price_too_large',
         'storefront.purchase_rejected',
         'storefront.self_purchase',
+        'storefront.seller_not_found',
         'storefront.unavailable',
+        'subscription.already_subscribed',
         'subscription.change_via_reseller',
         'subscription.insufficient_credit',
+        'subscription.method_not_allowed',
         'subscription.not_confirmable',
+        'subscription.not_found',
         'subscription.not_payable',
         'subscription.payment_start_failed',
+        'subscription.plan_not_purchasable',
         'subscription.provider_unavailable',
+        'twofa.already_enabled',
+        'twofa.code_invalid',
+        'twofa.not_enabled',
+        'webhook.delivery_expired',
+        'webhook.delivery_in_progress',
+        'webhook.delivery_not_found',
+        'webhook.endpoint_inactive',
+        'webhook.url_invalid',
     ];
 
     public static function isKnown(?string $code): bool

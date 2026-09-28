@@ -24,6 +24,7 @@ final class EventType
     public const SUBSCRIPTION_EXPIRED = 'subscription.expired';
     public const SUBSCRIPTION_PAST_DUE = 'subscription.past_due';
     public const SUBSCRIPTION_RENEWED = 'subscription.renewed';
+    public const WEBHOOK_TEST = 'webhook.test';
 
     /** @var list<string> */
     public const ALL = [
@@ -39,5 +40,6 @@ final class EventType
         self::SUBSCRIPTION_EXPIRED,
         self::SUBSCRIPTION_PAST_DUE,
         self::SUBSCRIPTION_RENEWED,
+        self::WEBHOOK_TEST,
     ];
 }
